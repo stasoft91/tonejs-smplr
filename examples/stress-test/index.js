@@ -1,4 +1,4 @@
-import { SplendidGrandPiano } from "https://unpkg.com/smplr/dist/index.mjs";
+import { SplendidGrandPiano } from "https://unpkg.com/tonejs-smplr/dist/index.mjs";
 
 const NUMBER_OF_NOTES = 2000;
 

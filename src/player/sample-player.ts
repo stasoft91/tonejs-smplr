@@ -84,6 +84,8 @@ export class SamplePlayer implements InternalPlayer {
       }
     }
 
+    source.buffer.reverse = sample.reverse ?? this.options.reverse ?? false;
+
     // Compensate gain
     const gainCompensation = sample.gainOffset
       ? new Tone.Gain( { gain: sample.gainOffset })
