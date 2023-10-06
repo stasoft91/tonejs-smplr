@@ -9,25 +9,22 @@ Examples:
 ```js
 import { Soundfont } from "smplr";
 
-const context = new AudioContext();
-const marimba = new Soundfont(context, { instrument: "marimba" });
+const marimba = new Soundfont({ instrument: "marimba" });
 marimba.start({ note: 60, velocity: 80 });
 ```
 
 ```js
 import { DrumMachine } from "smplr";
 
-const context = new AudioContext();
-const dm = new DrumMachine(context);
+const dm = new DrumMachine();
 dm.start({ note: "kick" });
 ```
 
 ```js
 import { SplendidGrandPiano, Reverb } from "smplr";
 
-const context = new AudioContext();
-const piano = new SplendidGrandPiano(context);
-piano.output.addEffect("reverb", new Reverb(context), 0.2);
+const piano = new SplendidGrandPiano();
+piano.output.addEffect("reverb", new Reverb(), 0.2);
 
 piano.start({ note: "C4" });
 ```
@@ -50,7 +47,7 @@ You can install the library with a package manager or use it directly by importi
 
 Samples are stored at https://github.com/smpldsnds and there is no need to download them. Kudos to all _samplerist_ 🙌
 
-#### Using a package manger
+#### Using a package manger (won`t work with this fork)
 
 Use npm or your favourite package manager to install the library to use it in your project:
 
@@ -86,14 +83,13 @@ The package needs to be serve as a url from a service like [unpkg](unpkg.com) or
 
 ### Create and load an instrument
 
-All instruments follows the same pattern: `new Instrument(context, options)`. For example:
+All instruments follows the same pattern: `new Instrument(options)`. For example:
 
 ```js
 import { SplendidGrandPiano, Soundfont } from "smplr";
 
-const context = new AudioContext();
-const piano = new SplendidGrandPiano(context, { decayTime: 0.5 });
-const marimba = new Soundfont(context, { instrument: "marimba" });
+const piano = new SplendidGrandPiano({ decayTime: 0.5 });
+const marimba = new Soundfont({ instrument: "marimba" });
 ```
 
 #### Wait for audio loading
@@ -241,8 +237,8 @@ Use `output.addEffect(name, effect, mix)` to connect an effect using a send bus:
 
 ```js
 import { Reverb, SplendidGrandPiano } from "smplr";
-const reverb = new Reverb(context);
-const piano = new SplendidGrandPiano(context, { volume });
+const reverb = new Reverb();
+const piano = new SplendidGrandPiano({ volume });
 piano.output.addEffect("reverb", reverb, 0.2);
 ```
 
@@ -266,7 +262,7 @@ import { SplendidGrandPiano, CacheStorage } from "smplr";
 const context = new AudioContext();
 const storage = new CacheStorage();
 // First time the instrument loads, will fetch the samples from http. Subsequent times from cache.
-const piano = new SplendidGrandPiano(context, { storage });
+const piano = new SplendidGrandPiano({ storage });
 ```
 
 ⚠️ `CacheStorage` is based on [Cache API](https://developer.mozilla.org/en-US/docs/Web/API/Cache) and only works in secure environments that runs with `https`. Read your framework documentation for setup instructions. For example, in nextjs you can use https://www.npmjs.com/package/next-dev-https. For vite there's https://github.com/liuweiGL/vite-plugin-mkcert. Find the appropriate solution for your environment.
@@ -284,7 +280,7 @@ const samples = {
   kick: "https://danigb.github.io/samples/drum-machines/808-mini/kick.m4a",
   snare: "https://danigb.github.io/samples/drum-machines/808-mini/snare-1.m4a",
 };
-const sampler = new Sampler(new AudioContext(), { samples });
+const sampler = new Sampler({ samples });
 sampler.start({ note: "kick" });
 ```
 
@@ -296,7 +292,7 @@ A Soundfont player. By default it loads audio from Benjamin Gleitzman's package 
 ```js
 import { Soundfont, getSoundfontNames, getSoundfontKits } from "smplr";
 
-const marimba = new Soundfont(new AudioContext(), { instrument: "marimba" });
+const marimba = new Soundfont({ instrument: "marimba" });
 marimba.start({ note: "C4" });
 ```
 
@@ -309,7 +305,7 @@ Use `getSoundfontNames` to get all available instrument names and `getSoundfontK
 There are two kits available: `MusyngKite` or `FluidR3_GM`. The first one is used by default: it sounds better but samples weights more.
 
 ```js
-const marimba = new Soundfont(context, {
+const marimba = new Soundfont({
   instrument: "clavinet",
   kit: "FluidR3_GM", // "MusyngKite" is used by default if not specified
 });
@@ -318,7 +314,7 @@ const marimba = new Soundfont(context, {
 Alternatively, you can pass your custom url as the instrument. In that case, the `kit` is ignored:
 
 ```js
-const marimba = new Soundfont(context, {
+const marimba = new Soundfont({
   instrumentUrl:
     "https://gleitz.github.io/midi-js-soundfonts/MusyngKite/marimba-mp3.js",
 });
@@ -398,7 +394,7 @@ import { Mellotron, getMellotronNames } from "smplr";
 
 const instruments = getMellotronNames();
 
-const mallet = new Mellotron(new AudioContext(), {
+const mallet = new Mellotron({
   instrument: instruments[0],
 });
 ```
@@ -412,8 +408,7 @@ import { DrumMachine, getDrumMachineNames } from "smplr";
 
 const instruments = getDrumMachineNames();
 
-const context = new AudioContext();
-const drums = new DrumMachine(context, { instrument: "TR-808" });
+const drums = new DrumMachine({ instrument: "TR-808" });
 drums.start({ note: "kick" });
 
 // Drum samples could have variations:
@@ -431,8 +426,7 @@ import { Smolken, getSmolkenNames } from "smplr";
 const instruments = getSmolkenNames(); // => Arco, Pizzicato & Switched
 
 // Create an instrument
-const context = new AudioContext();
-const doubleBass = await new Smolken(context, { instrument: "Arco" }).load;
+const doubleBass = await new Smolken({ instrument: "Arco" }).load;
 ```
 
 ### Versilian
@@ -447,8 +441,7 @@ import { Versilian, getVersilianInstruments } from "smplr";
 // getVersilianInstruments returns a Promise
 const instrumentNames = await getVersilianInstruments();
 
-const context = new AudioContext();
-const sampler = new Versilian(context, { instrument: instrumentNAmes[0] });
+const sampler = new Versilian({ instrument: instrumentNAmes[0] });
 ```
 
 ## License
