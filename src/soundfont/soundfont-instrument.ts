@@ -1,5 +1,6 @@
+import * as Tone from "tone/Tone";
 import { spreadRegions } from "../player/layers";
-import { AudioBuffers, findFirstSupportedFormat } from "../player/load-audio";
+import { findFirstSupportedFormat } from "../player/load-audio";
 import { toMidi } from "../player/midi";
 import { RegionGroup } from "../player/types";
 import { Storage } from "../storage";
@@ -11,10 +12,10 @@ export function gleitzKitUrl(name: string, kit: string) {
 
 export function soundfontInstrumentLoader(
   url: string,
-  buffers: AudioBuffers,
+  buffers: Tone.ToneAudioBuffers,
   group: RegionGroup
 ) {
-  return async (context: BaseAudioContext, storage: Storage) => {
+  return async (storage: Storage) => {
     const sourceFile = await (await storage.fetch(url)).text();
     const json = midiJsToJson(sourceFile);
 
@@ -23,11 +24,11 @@ export function soundfontInstrumentLoader(
       noteNames.map(async (noteName) => {
         const midi = toMidi(noteName);
         if (!midi) return;
-        const audioData = base64ToArrayBuffer(
-          removeBase64Prefix(json[noteName])
-        );
-        const buffer = await context.decodeAudioData(audioData);
-        buffers[noteName] = buffer;
+
+        const buffer = new Tone.ToneAudioBuffer(json[noteName])
+
+        buffers.has(noteName) ? buffers.get(noteName).set(buffer) : buffers.add(noteName, buffer);
+
         group.regions.push({
           sampleName: noteName,
           midiPitch: midi,
@@ -58,7 +59,8 @@ function base64ToArrayBuffer(base64: string) {
   for (let i = 0; i < len; i++) {
     bytes[i] = decoded.charCodeAt(i);
   }
-  return bytes.buffer;
+
+  return bytes;
 }
 
 export const SOUNDFONT_KITS = ["MusyngKite", "FluidR3_GM"];

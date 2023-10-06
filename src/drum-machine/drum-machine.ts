@@ -1,7 +1,7 @@
+import * as Tone from "tone/Tone";
 import { OutputChannel } from "../player/channel";
 import { DefaultPlayer, DefaultPlayerConfig } from "../player/default-player";
 import {
-  AudioBuffers,
   findFirstSupportedFormat,
   loadAudioBuffer,
 } from "../player/load-audio";
@@ -55,14 +55,13 @@ export class DrumMachine {
   public readonly load: Promise<this>;
   public readonly output: OutputChannel;
 
-  public constructor(context: AudioContext, options?: DrumMachineOptions) {
+  public constructor(options?: DrumMachineOptions) {
     const config = getConfig(options);
 
     const instrument = fetchDrumMachineInstrument(config.url, config.storage);
-    this.player = new DefaultPlayer(context, options);
+    this.player = new DefaultPlayer(options);
     this.output = this.player.output;
     this.load = drumMachineLoader(
-      context,
       this.player.buffers,
       instrument,
       config.storage
@@ -101,8 +100,7 @@ export class DrumMachine {
 }
 
 function drumMachineLoader(
-  context: BaseAudioContext,
-  buffers: AudioBuffers,
+  buffers: Tone.ToneAudioBuffers,
   instrument: Promise<DrumMachineInstrument>,
   storage: Storage
 ) {
@@ -113,8 +111,16 @@ function drumMachineLoader(
         const url = `${data.baseUrl}/${sample}.${format}`;
         const sampleName =
           sample.indexOf("/") !== -1 ? sample : sample.replace("-", "/");
-        const buffer = await loadAudioBuffer(context, url, storage);
-        if (buffer) buffers[sampleName] = buffer;
+        const buffer = await loadAudioBuffer(url, storage);
+
+        if (buffer) {
+          if (!buffers.has(sampleName)) {
+            buffers.add(sampleName, buffer)
+          }
+          else {
+            buffers.get(sampleName).set(buffer);
+          }
+        }
       })
     )
   );

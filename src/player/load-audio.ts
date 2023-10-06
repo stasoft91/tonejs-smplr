@@ -1,20 +1,18 @@
-import { Storage } from "../storage";
+import * as Tone from "tone/Tone";
+import {Storage} from "../storage";
 
-export type AudioBuffers = Record<string | number, AudioBuffer | undefined>;
 
 /**
  * A function that downloads audio into a AudioBuffers
  */
 export type AudioBuffersLoader = (
-  context: BaseAudioContext,
-  buffers: AudioBuffers
+  buffers: Tone.ToneAudioBuffers,
 ) => Promise<void>;
 
 export async function loadAudioBuffer(
-  context: BaseAudioContext,
   url: string,
   storage: Storage
-): Promise<AudioBuffer | undefined> {
+): Promise<Tone.ToneAudioBuffer | undefined> {
   url = url.replace(/#/g, "%23").replace(/([^:]\/)\/+/g, "$1");
   const response = await storage.fetch(url);
   if (response.status !== 200) {
@@ -27,7 +25,8 @@ export async function loadAudioBuffer(
   }
   try {
     const audioData = await response.arrayBuffer();
-    const buffer = await context.decodeAudioData(audioData);
+    const buffer = new Tone.ToneAudioBuffer()
+    buffer.set(await Tone.getContext().decodeAudioData(audioData))
     return buffer;
   } catch (error) {
     console.warn("Error loading buffer", error, url);

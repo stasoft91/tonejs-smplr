@@ -23,7 +23,7 @@ function setup() {
 describe("Drum machine", () => {
   it("replaces name with sample name", async () => {
     const { context } = setup();
-    const dm = await new DrumMachine(context, {
+    const dm = await new DrumMachine({
       instrument: "TR-808",
     }).load;
     const start = jest.fn();
@@ -35,7 +35,7 @@ describe("Drum machine", () => {
 
   it("calls underlying player on stop", () => {
     const { context } = setup();
-    const dm = new DrumMachine(context, { instrument: "TR-808" });
+    const dm = new DrumMachine({ instrument: "TR-808" });
     const stop = jest.fn();
 
     (dm as any).player.stop = stop;
@@ -45,7 +45,7 @@ describe("Drum machine", () => {
 
   it("has output", () => {
     const { context } = setup();
-    const dm = new DrumMachine(context, { instrument: "TR-808" });
+    const dm = new DrumMachine({ instrument: "TR-808" });
     expect(dm.output).toBeDefined();
   });
 });

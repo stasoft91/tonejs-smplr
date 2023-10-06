@@ -1,6 +1,6 @@
+import * as Tone from "tone/Tone";
 import { DefaultPlayer } from "./player/default-player";
 import {
-  AudioBuffers,
   AudioBuffersLoader,
   loadAudioBuffer,
 } from "./player/load-audio";
@@ -15,9 +15,9 @@ export type SamplerConfig = {
   velocity: number;
   decayTime?: number;
   lpfCutoffHz?: number;
-  destination: AudioNode;
+  destination: Tone.ToneAudioNode;
 
-  buffers: Record<string | number, string | AudioBuffers> | AudioBuffersLoader;
+  buffers: Tone.ToneAudioBuffers | AudioBuffersLoader;
   volumeToGain: (volume: number) => number;
 };
 
@@ -32,24 +32,23 @@ export class Sampler {
   public readonly load: Promise<this>;
 
   public constructor(
-    public readonly context: AudioContext,
     options: Partial<SamplerConfig> = {}
   ) {
     this.#options = {
-      destination: options.destination ?? context.destination,
+      destination: options.destination ?? Tone.Destination,
       detune: 0,
       volume: options.volume ?? 100,
       velocity: options.velocity ?? 100,
-      buffers: options.buffers ?? {},
+      buffers: options.buffers ?? new Tone.ToneAudioBuffers(),
       volumeToGain: options.volumeToGain ?? midiVelToGain,
     };
-    this.player = new DefaultPlayer(context, this.#options);
+    this.player = new DefaultPlayer(this.#options);
     const storage = options.storage ?? HttpStorage;
     const loader =
       typeof this.#options.buffers === "function"
         ? this.#options.buffers
         : createAudioBuffersLoader(this.#options.buffers, storage);
-    this.load = loader(context, this.player.buffers).then(() => this);
+    this.load = loader(this.player.buffers).then(() => this);
   }
 
   async loaded() {
@@ -83,18 +82,18 @@ export class Sampler {
 }
 
 function createAudioBuffersLoader(
-  source: Record<string | number, string | AudioBuffers>,
+  source: Tone.ToneAudioBuffers,
   storage: Storage
 ): AudioBuffersLoader {
-  return async (context, buffers) => {
+  return async (buffers) => {
     await Promise.all([
       Object.keys(source).map(async (key) => {
-        const value = source[key];
-        if (value instanceof AudioBuffer) {
-          buffers[key] = value;
+        const value = source.get(key);
+        if (value instanceof Tone.ToneAudioBuffer) {
+          buffers.get(key).set(value);
         } else if (typeof value === "string") {
-          const buffer = await loadAudioBuffer(context, value, storage);
-          if (buffer) buffers[key] = buffer;
+          const buffer = await loadAudioBuffer(value, storage);
+          if (buffer) buffers.get(key).set(buffer);
         }
       }),
     ]);

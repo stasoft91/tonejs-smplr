@@ -1,5 +1,5 @@
+import * as Tone from "tone/Tone";
 import { connectSerial } from "./connect";
-import { AudioBuffers } from "./load-audio";
 import { Trigger, createTrigger, unsubscribeAll } from "./signals";
 import {
   InternalPlayer,
@@ -11,7 +11,7 @@ import { midiVelToGain } from "./volume";
 
 export type SamplePlayerConfig = {
   velocityToGain: (velocity: number) => number;
-  destination: AudioNode;
+  destination: Tone.ToneAudioNode;
 } & SampleOptions;
 
 /**
@@ -20,20 +20,19 @@ export type SamplePlayerConfig = {
  * @private Not intended for public use
  */
 export class SamplePlayer implements InternalPlayer {
-  public readonly buffers: AudioBuffers;
+  public readonly buffers!: Tone.ToneAudioBuffers;
   #config: SamplePlayerConfig;
   #disconnected = false;
   #stop: Trigger<SampleStop | undefined>;
 
   public constructor(
-    public readonly context: BaseAudioContext,
     private readonly options: Partial<SamplePlayerConfig>
   ) {
     this.#config = {
       velocityToGain: options.velocityToGain ?? midiVelToGain,
-      destination: options.destination ?? context.destination,
+      destination: options.destination ?? Tone.Destination,
     };
-    this.buffers = {};
+    this.buffers = new Tone.ToneAudioBuffers();
     this.#stop = createTrigger();
   }
 
@@ -41,31 +40,29 @@ export class SamplePlayer implements InternalPlayer {
     if (this.#disconnected) {
       throw new Error("Can't start a sample on disconnected player");
     }
-    const context = this.context;
     const buffer =
-      (sample.name && this.buffers[sample.name]) || this.buffers[sample.note];
+      (sample.name && this.buffers.get(sample.name)) || this.buffers.get(sample.note);
     if (!buffer) {
       console.warn(`Sample not found: '${sample.note}'`);
       return () => undefined;
     }
 
-    const source = context.createBufferSource();
-    source.buffer = buffer;
-    source.detune.value = sample.detune ?? this.options.detune ?? 0;
+    const source = new Tone.BufferSource(buffer);
+    // source.detune.value = sample.detune ?? this.options.detune ?? 0;
 
     // Low pass filter
     const lpfCutoffHz = sample.lpfCutoffHz ?? this.options.lpfCutoffHz;
     const lpf = lpfCutoffHz
-      ? new BiquadFilterNode(context, {
+      ? new Tone.BiquadFilter( {
           type: "lowpass",
           frequency: sample.lpfCutoffHz,
         })
       : undefined;
 
     // Sample volume
-    const volume = context.createGain();
+    const volume = new Tone.Volume();
     const velocity = sample.velocity ?? this.options.velocity ?? 100;
-    volume.gain.value = this.#config.velocityToGain(velocity);
+    volume.volume.linearRampTo(Tone.gainToDb(velocity), 0.001, sample.time);
 
     const loop = sample.loop ?? this.options.loop;
     if (loop) {
@@ -76,9 +73,9 @@ export class SamplePlayer implements InternalPlayer {
 
     // Stop with decay
     const decayTime = sample.decayTime ?? this.options.decayTime;
-    const [decay, startDecay] = createDecayEnvelope(context, decayTime);
+    const [decay, startDecay] = createDecayEnvelope(decayTime);
     function stop(time?: number) {
-      time ??= context.currentTime;
+      time ??= Tone.now();
       if (time <= startAt) {
         source.stop(time);
       } else {
@@ -89,7 +86,7 @@ export class SamplePlayer implements InternalPlayer {
 
     // Compensate gain
     const gainCompensation = sample.gainOffset
-      ? new GainNode(context, { gain: sample.gainOffset })
+      ? new Tone.Gain( { gain: sample.gainOffset })
       : undefined;
 
     const stopId = sample.stopId ?? sample.note;
@@ -115,10 +112,10 @@ export class SamplePlayer implements InternalPlayer {
     };
 
     sample.onStart?.(sample);
-    const startAt = Math.max(sample.time ?? 0, context.currentTime);
+    const startAt = Math.max(sample.time ?? 0, Tone.now());
     source.start(sample.time);
 
-    let duration = sample.duration ?? buffer.duration;
+    const duration = sample.duration ?? buffer.duration;
     if (typeof sample.duration == "number") {
       stop(startAt + duration);
     }
@@ -134,9 +131,7 @@ export class SamplePlayer implements InternalPlayer {
     if (this.#disconnected) return;
     this.#disconnected = true;
     this.stop();
-    Object.keys(this.buffers).forEach((key) => {
-      delete this.buffers[key];
-    });
+    this.buffers.dispose();
   }
 
   public get connected() {
@@ -145,16 +140,15 @@ export class SamplePlayer implements InternalPlayer {
 }
 
 function createDecayEnvelope(
-  context: BaseAudioContext,
   envelopeTime = 0.2
-): [AudioNode, (time: number) => number] {
+): [Tone.ToneAudioNode, (time: number) => number] {
   let stopAt = 0;
-  const envelope = new GainNode(context, { gain: 1.0 });
+  const envelope = new Tone.Gain({ gain: 1.0 });
 
   function start(time: number): number {
     if (stopAt) return stopAt;
     envelope.gain.cancelScheduledValues(time);
-    const envelopeAt = time || context.currentTime;
+    const envelopeAt = time || Tone.now();
     stopAt = envelopeAt + envelopeTime;
     envelope.gain.setValueAtTime(1.0, envelopeAt);
     envelope.gain.linearRampToValueAtTime(0, stopAt);

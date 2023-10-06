@@ -3,7 +3,6 @@ import {
   createEmptyRegionGroup,
   findFirstSampleInRegions,
 } from "../player/layers";
-import { AudioBuffers } from "../player/load-audio";
 import { RegionGroup, SampleStart, SampleStop } from "../player/types";
 import { HttpStorage, Storage } from "../storage";
 import {
@@ -16,7 +15,7 @@ import {
   fetchSoundfontLoopData,
   getGoldstSoundfontLoopsUrl,
 } from "./soundfont-loops";
-
+import * as Tone from "tone/Tone";
 export function getSoundfontKits() {
   return SOUNDFONT_KITS;
 }
@@ -45,11 +44,10 @@ export class Soundfont {
   #hasLoops: boolean;
 
   constructor(
-    public readonly context: AudioContext,
     options: SoundfontOptions
   ) {
     this.config = getSoundfontConfig(options);
-    this.player = new DefaultPlayer(context, options);
+    this.player = new DefaultPlayer(options);
     this.group = createEmptyRegionGroup();
 
     this.#hasLoops = false;
@@ -59,12 +57,12 @@ export class Soundfont {
       this.player.buffers,
       this.group
     );
-    this.load = loader(context, this.config.storage).then((hasLoops) => {
+    this.load = loader(this.config.storage).then((hasLoops) => {
       this.#hasLoops = hasLoops;
       return this;
     });
 
-    const gain = new GainNode(context, { gain: this.config.extraGain });
+    const gain = new Tone.Gain( { gain: this.config.extraGain });
     this.player.output.addInsert(gain);
   }
 
@@ -103,13 +101,13 @@ export class Soundfont {
 function soundfontLoader(
   url: string,
   loopsUrl: string | undefined,
-  buffers: AudioBuffers,
+  buffers: Tone.ToneAudioBuffers,
   group: RegionGroup
 ) {
   const loadInstrument = soundfontInstrumentLoader(url, buffers, group);
-  return async (context: BaseAudioContext, storage: Storage) => {
+  return async (storage: Storage) => {
     const [_, loops] = await Promise.all([
-      loadInstrument(context, storage),
+      loadInstrument(storage),
       fetchSoundfontLoopData(loopsUrl),
     ]);
 

@@ -1,10 +1,13 @@
+import * as Tone from "tone/Tone";
+
 export type AudioInsert = {
-  input: AudioNode;
-  output: AudioNode;
+  input: Tone.ToneAudioNode;
+  output: Tone.ToneAudioNode;
 };
 
-export function connectSerial(nodes: (AudioNode | AudioInsert | undefined)[]) {
-  const _nodes = nodes.filter((x): x is AudioNode | AudioInsert => !!x);
+export function connectSerial(nodes: (Tone.ToneAudioNode | AudioInsert | undefined)[]) {
+  const _nodes = nodes.filter((x) => !!x) as (Tone.ToneAudioNode | AudioInsert)[];
+
   _nodes.reduce((a, b) => {
     const left = "output" in a ? a.output : a;
     const right = "input" in b ? b.input : b;

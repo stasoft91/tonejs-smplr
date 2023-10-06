@@ -1,3 +1,4 @@
+import * as Tone from "tone/Tone";
 import { SortedQueue } from "./sorted-queue";
 import { InternalPlayer, SampleStart, SampleStop } from "./types";
 
@@ -63,10 +64,6 @@ export class QueuedPlayer implements InternalPlayer {
     this.player = player;
   }
 
-  get context() {
-    return this.player.context;
-  }
-
   get buffers() {
     return this.player.buffers;
   }
@@ -76,8 +73,7 @@ export class QueuedPlayer implements InternalPlayer {
   }
 
   start(sample: SampleStart) {
-    const context = this.player.context;
-    const now = context.currentTime;
+    const now = Tone.now();
     const startAt = sample.time ?? now;
     const lookAhead = this.#config.scheduleLookaheadMs / 1000;
     sample.onStart = compose(sample.onStart, this.#config.onStart);
@@ -90,7 +86,7 @@ export class QueuedPlayer implements InternalPlayer {
 
     if (!this.#intervalId) {
       this.#intervalId = setInterval(() => {
-        const nextTick = context.currentTime + lookAhead;
+        const nextTick = Tone.now() + lookAhead;
         while (this.#queue.size() && this.#queue.peek()!.time <= nextTick) {
           const sample = this.#queue.pop();
           if (sample) {

@@ -1,12 +1,11 @@
-import { AudioBuffers } from "./load-audio";
+import * as Tone from "tone/Tone";
 import { Subscribe } from "./signals";
 
 /**
  * @private
  */
 export type InternalPlayer = {
-  readonly buffers: AudioBuffers;
-  readonly context: BaseAudioContext;
+  readonly buffers: Tone.ToneAudioBuffers;
   start(sample: SampleStart): (time?: number) => void;
   stop(sample?: SampleStop): void;
   disconnect(): void;

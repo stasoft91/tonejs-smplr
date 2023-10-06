@@ -1,9 +1,10 @@
+import * as Tone from "tone/Tone";
 import { AudioInsert, connectSerial } from "./connect";
 import { createControl } from "./signals";
 import { midiVelToGain } from "./volume";
 
 export type ChannelConfig = {
-  destination: AudioNode;
+  destination: Tone.ToneAudioNode;
   volume: number;
   volumeToGain: (volume: number) => number;
 };
@@ -12,7 +13,7 @@ export type OutputChannel = Omit<Channel, "input">;
 
 type Send = {
   name: string;
-  mix: GainNode;
+  mix: Tone.Gain;
   disconnect: () => void;
 };
 
@@ -22,28 +23,27 @@ type Send = {
  */
 export class Channel {
   public readonly setVolume: (vol: number) => void;
-  public readonly input: AudioNode;
+  public readonly input: Tone.ToneAudioNode;
 
-  #volume: GainNode;
+  #volume: Tone.Gain;
   #sends?: Send[];
-  #inserts?: (AudioNode | AudioInsert)[];
+  #inserts?: (Tone.ToneAudioNode | AudioInsert)[];
   #disconnect: () => void;
   #unsubscribe: () => void;
   #config: Readonly<ChannelConfig>;
   #disconnected = false;
 
   constructor(
-    public readonly context: BaseAudioContext,
     options?: Partial<ChannelConfig>
   ) {
     this.#config = {
-      destination: options?.destination ?? context.destination,
+      destination: options?.destination ?? Tone.Destination,
       volume: options?.volume ?? 100,
       volumeToGain: options?.volumeToGain ?? midiVelToGain,
     };
 
-    this.input = context.createGain();
-    this.#volume = context.createGain();
+    this.input = new Tone.Gain();
+    this.#volume = new Tone.Gain();
 
     this.#disconnect = connectSerial([
       this.input,
@@ -58,7 +58,7 @@ export class Channel {
     });
   }
 
-  addInsert(effect: AudioNode | AudioInsert) {
+  addInsert(effect: Tone.ToneAudioNode | AudioInsert) {
     if (this.#disconnected) {
       throw Error("Can't add insert to disconnected channel");
     }
@@ -75,13 +75,13 @@ export class Channel {
 
   addEffect(
     name: string,
-    effect: AudioNode | { input: AudioNode },
+    effect: Tone.ToneAudioNode | { input: Tone.ToneAudioNode },
     mixValue: number
   ) {
     if (this.#disconnected) {
       throw Error("Can't add effect to disconnected channel");
     }
-    const mix = new GainNode(this.context);
+    const mix = new Tone.Gain();
     mix.gain.value = mixValue;
     const input = "input" in effect ? effect.input : effect;
     const disconnect = connectSerial([this.#volume, mix, input]);
