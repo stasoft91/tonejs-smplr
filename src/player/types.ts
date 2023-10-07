@@ -1,5 +1,5 @@
 import * as Tone from "tone/Tone";
-import { Subscribe } from "./signals";
+import {Subscribe} from "./signals";
 
 /**
  * @private
@@ -29,6 +29,7 @@ export type SampleOptions = {
   // not implemented yet
   gainOffset?: number;
   reverse?: boolean;
+	playbackRate?: number;
 };
 
 export type SampleStart = {

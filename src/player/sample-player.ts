@@ -1,13 +1,8 @@
 import * as Tone from "tone/Tone";
-import { connectSerial } from "./connect";
-import { Trigger, createTrigger, unsubscribeAll } from "./signals";
-import {
-  InternalPlayer,
-  SampleOptions,
-  SampleStart,
-  SampleStop,
-} from "./types";
-import { midiVelToGain } from "./volume";
+import {connectSerial} from "./connect";
+import {createTrigger, Trigger, unsubscribeAll} from "./signals";
+import {InternalPlayer, SampleOptions, SampleStart, SampleStop,} from "./types";
+import {midiVelToGain} from "./volume";
 
 export type SamplePlayerConfig = {
   velocityToGain: (velocity: number) => number;
@@ -48,6 +43,7 @@ export class SamplePlayer implements InternalPlayer {
     }
 
     const source = new Tone.BufferSource(buffer);
+	  source.playbackRate.value = sample.playbackRate ?? 1;
     // source.detune.value = sample.detune ?? this.options.detune ?? 0;
 
     // Low pass filter
@@ -83,15 +79,19 @@ export class SamplePlayer implements InternalPlayer {
         source.stop(stopAt);
       }
     }
-
-    source.buffer.reverse = sample.reverse ?? this.options.reverse ?? false;
+	  
+	  // TODO REVERSE IS BROKEN FOR NOW
+	  // const shouldReverse = sample.reverse ?? this.options.reverse ?? false;
+	  // const reversedSource = cloneDeep(source);
+	  // reversedSource.buffer.reverse = true;
 
     // Compensate gain
     const gainCompensation = sample.gainOffset
       ? new Tone.Gain( { gain: sample.gainOffset })
       : undefined;
-
-    const stopId = sample.stopId ?? sample.note;
+	  
+	  
+	  const stopId = sample.stopId ?? sample.note;
     const cleanup = unsubscribeAll([
       connectSerial([
         source,
